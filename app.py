@@ -17,29 +17,25 @@ model = YOLO("best.pt")
 ocr = PaddleOCR(use_angle_cls=True, lang="en", use_gpu=False)  # Set to True if GPU available
 print(f"Models loaded in {time.time() - start_time:.2f} seconds")
 
-def crop_img(pil_img):
-     # 1) Convert PIL→NumPy RGB→BGR for YOLO
-    img_np = np.array(pil_img)
+def crop_img(img_np):
+    # 1) Convert RGB to BGR for YOLO
     bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
     # 2) Run YOLO on the BGR array
     results = model.predict(source=bgr, conf=0.4, verbose=False)
     boxes = results[0].boxes
     
-    if len(boxes) > 0:
-        most_confident = sorted(boxes, key=lambda b: b.conf[0].item(), reverse=True)[0]
-        x1, y1, x2, y2 = most_confident.xyxy[0].tolist()
+    if len(boxes) == 0:
+        print("No license plate detected")
+        return None
     
-        cropped = pil_img.crop((x1, y1, x2, y2))
-        cropped_np = np.array(cropped)
-        cropped_bgr = cv2.cvtColor(cropped_np, cv2.COLOR_RGB2BGR)
-        # save_path = os.path.join(output_folder, f"cropped_{fname}")
-        # cropped.save(save_path)
-        # print(f"Saved: {save_path}")
-    else:
-        print(f"No license plate detected in: {fname}")
+    # Get the most confident detection
+    most_confident = sorted(boxes, key=lambda b: b.conf[0].item(), reverse=True)[0]
+    x1, y1, x2, y2 = map(int, most_confident.xyxy[0].tolist())
     
-    return cv2.cvtColor(cropped_bgr, cv2.COLOR_BGR2RGB)
+    # Crop the numpy array directly
+    cropped = img_np[y1:y2, x1:x2]
+    return cropped
 
 
 def preprocess_plate_improved(gray, debug=False):
@@ -177,17 +173,21 @@ def plate_ocr_paddle(pil_img, debug=False):
     
     return best_txt, vis_rgb
 
-def detect_and_ocr(pil_img):
+def detect_and_ocr(img_np):
     # Crop the license plate from the image
-    rgb = crop_img(pil_img)
-    pil = Image.fromarray(rgb)
+    cropped = crop_img(img_np)
+    if cropped is None:
+        return "No plate detected", None
+    
+    # Convert to PIL Image for plate_ocr_paddle
+    pil_img = Image.fromarray(cropped)
     
     # Get the detected text and visualization
-    text, vis = plate_ocr_paddle(pil, debug=False)
+    text, vis = plate_ocr_paddle(pil_img, debug=False)
     
     if text is None:
         print("No license plate text detected")
-        return "No text detected", cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+        return "No text detected", cropped
     
     print("Detected plate:", text)
     return text, vis  # Return both text and visualization image
@@ -199,7 +199,7 @@ with gr.Blocks(title="License Plate Reader") as demo:
     
     with gr.Row():
         with gr.Column():
-            input_image = gr.Image(type="pil", label="Upload Vehicle Photo")
+            input_image = gr.Image(type="numpy", label="Upload Vehicle Photo")
             submit_btn = gr.Button("Process")
         
         with gr.Column():
