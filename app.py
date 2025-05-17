@@ -194,8 +194,7 @@ def detect_and_ocr(img_np):
 
 # Create the Gradio interface
 with gr.Blocks(title="License Plate Reader") as demo:
-    gr.Markdown("# YOLO + PaddleOCR License Plate Reader")
-    gr.Markdown("Upload a photo of a vehicle to detect and read its license plate.")
+    gr.Markdown("# Parkd License Plate Reader")
     
     with gr.Row():
         with gr.Column():
