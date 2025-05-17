@@ -21,8 +21,8 @@ def crop_img(img_np):
     # 1) Convert RGB to BGR for YOLO
     bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
-    # 2) Run YOLO on the BGR array
-    results = model.predict(source=bgr, conf=0.4, verbose=False)
+    # 2) Run YOLO on the BGR array (using direct call for better performance)
+    results = model(bgr, conf=0.4, verbose=False)
     boxes = results[0].boxes
     
     if len(boxes) == 0:
