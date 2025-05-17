@@ -11,6 +11,7 @@ import gradio as gr
 
 # one‐time model load (≈2–4 s on CPU)
 ocr = PaddleOCR(use_angle_cls=True, lang="en")
+model = YOLO("best.pt")
 
 def crop_img(pil_img):
      # 1) Convert PIL→NumPy RGB→BGR for YOLO
