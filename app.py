@@ -8,10 +8,14 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from paddleocr import PaddleOCR
 import gradio as gr
+import time
 
-# one‐time model load (≈2–4 s on CPU)
-ocr = PaddleOCR(use_angle_cls=True, lang="en")
+# Load models once at startup
+print("Loading models...")
+start_time = time.time()
 model = YOLO("best.pt")
+ocr = PaddleOCR(use_angle_cls=True, lang="en", use_gpu=False)  # Set to True if GPU available
+print(f"Models loaded in {time.time() - start_time:.2f} seconds")
 
 def crop_img(pil_img):
      # 1) Convert PIL→NumPy RGB→BGR for YOLO
